@@ -2,40 +2,24 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 
-# 1. 设置页面
+# 页面设置
 st.set_page_config(page_title="销售业绩跟踪小程序", layout="wide")
 st.title("📊 销售基金产品业绩追踪")
 
-# 2. 读取数据
-@st.cache_data
-def load_data():
-    df = pd.read_excel("净值跟踪整体.xlsx", skiprows=2)
-    df.columns = ['销售渠道', '产品名称', '基金代码', '类型', '购买日期', '重点销售网点']
-    # 模拟净值计算 (实际中需接入基金净值API)
-    df['购买日期'] = pd.to_datetime(df['购买日期'], format='%Y%m%d')
-    df['当前收益率(%)'] = np.random.uniform(-5, 15, size=len(df)).round(2)
-    df['年化收益率(%)'] = (df['当前收益率(%)'] / 1.5).round(2) # 模拟计算
-    return df
-
-@st.cache_data
-def load_data():
+# 1. 尝试读取数据
+try:
+    # 这一行就是 load_data 的核心逻辑
     df = pd.read_excel("净值跟踪整体.xlsx", header=2)
-    # 不再手动指定列名，直接用 Excel 原有的列名
-    # 只要这几列存在，程序就能直接跑，不会再报 Key Error 了
-    df['当前收益率(%)'] = np.random.uniform(-5, 15, size=len(df)).round(2)
-    return df
+    
+    # 强制将列名重命名为简单的 A, B, C... 以防止任何列名不匹配报错
+    df.columns = ['A', 'B', 'C', 'D', 'E', 'F']
+    
+    # 模拟计算数据
+    df['收益率'] = np.random.uniform(-5, 15, size=len(df)).round(2)
+    
+    st.success("数据加载成功！")
+    st.dataframe(df, use_container_width=True)
 
-# 3. 筛选面板
-st.sidebar.header("筛选器")
-channel = st.sidebar.multiselect("选择销售渠道", data['销售渠道'].unique())
-if channel:
-    data = data[data['销售渠道'].isin(channel)]
-
-# 4. 展示表格
-st.subheader("当前持仓产品业绩")
-st.dataframe(data.style.background_gradient(subset=['当前收益率(%)'], cmap='RdYlGn'), use_container_width=True)
-
-# 5. 售后提醒：红色高亮亏损产品
-st.subheader("⚠️ 需重点关注 (亏损产品)")
-loss_df = data[data['当前收益率(%)'] < 0]
-st.table(loss_df[['产品名称', '基金代码', '当前收益率(%)', '重点销售网点']])
+except Exception as e:
+    st.error(f"读取 Excel 出错了，错误信息是: {e}")
+    st.info("请检查 Excel 文件是否在 GitHub 根目录，且文件名是否完全一致。")
