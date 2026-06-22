@@ -1,32 +1,22 @@
-import streamlit as st
-import pandas as pd
-import numpy as np
-import os
-
-# 1. 页面整体美化
-st.set_page_config(page_title="华泰柏瑞净值跟踪", layout="wide")
-
-# 自定义 CSS 让表格更漂亮
-st.markdown("""
-    <style>
-    .stMetric { background-color: #f0f2f6; padding: 15px; border-radius: 10px; }
-    .main { background-color: #f8f9fa; }
-    </style>
-    """, unsafe_allow_html=True)
-
-st.title("📊 华泰柏瑞近期重大营销项目净值跟踪")
-
-# 路径设置
-current_dir = os.path.dirname(os.path.abspath(__file__))
-file_path = os.path.join(current_dir, "净值跟踪整体.xlsx")
-
-try:
-    # 读取数据：跳过前3行，取所有列
-    df = pd.read_excel(file_path, header=None, skiprows=3)
-    
-    # 强制只取第5列到第10列（即前四列之后的数据）
-    df = df.iloc[:, 4:10] 
+# ... 前面的代码不变 ...
+    # 1. 强制重命名：确保后面所有引用都用这几个标准的列名
     df.columns = ['销售渠道', '产品名称', '基金代码', '类型', '购买日期', '重点销售分布']
+    
+    # 2. 增加计算列（保证列名和后面引用完全一致）
+    # 为了避免中英文括号和空格导致的 KeyError，我们直接用简单变量名
+    df['收益率'] = np.random.uniform(-5, 15, size=len(df)).round(2)
+    df['年化收益率'] = (df['收益率'] * 1.5).round(2)
+    
+    # 3. 预警部分（直接用刚刚定义的简单列名）
+    st.subheader("⚠️ 亏损产品风险预警")
+    loss_df = df[df['收益率'] < 0]
+    
+    if not loss_df.empty:
+        # 只取我们需要的这几列
+        st.table(loss_df[['产品名称', '基金代码', '收益率', '年化收益率']])
+    else:
+        st.success("所有项目表现良好！")
+    # ... 后面的代码不变 ...
     
     # 计算列
     df['持有至今收益率(%)'] = np.random.uniform(-5, 15, size=len(df)).round(2)
