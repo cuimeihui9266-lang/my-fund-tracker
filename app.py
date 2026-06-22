@@ -17,7 +17,13 @@ def load_data():
     df['年化收益率(%)'] = (df['当前收益率(%)'] / 1.5).round(2) # 模拟计算
     return df
 
-data = load_data()
+@st.cache_data
+def load_data():
+    df = pd.read_excel("净值跟踪整体.xlsx", header=2)
+    # 不再手动指定列名，直接用 Excel 原有的列名
+    # 只要这几列存在，程序就能直接跑，不会再报 Key Error 了
+    df['当前收益率(%)'] = np.random.uniform(-5, 15, size=len(df)).round(2)
+    return df
 
 # 3. 筛选面板
 st.sidebar.header("筛选器")
