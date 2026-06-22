@@ -11,32 +11,32 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 file_path = os.path.join(current_dir, "净值跟踪整体.xlsx")
 
 try:
-    # 1. 读取 Excel，暂时不设置 header，全部读入
-    df = pd.read_excel(file_path, header=None)
+    # 读取 Excel
+    df = pd.read_excel(file_path, header=2)
     
-    # 2. 强行删掉前四列 (df.iloc[:, 4:] 表示从第5列开始保留)
-    df = df.iloc[:, 4:]
+    # --- 重要：请检查您 Excel 的列名，确保完全匹配 ---
+    # 根据我们之前的分析，我们重新命名列名，保证代码能识别
+    df.columns = ['销售渠道', '产品', '基金代码', '类型', '购买日期', '重点销售人员网点分布']
     
-    # 3. 将原本的第 3 行 (索引为2) 设为标题行
-    df.columns = df.iloc[2]
-    # 只保留第 4 行之后的数据
-    df = df.iloc[3:]
-    
-    # 4. 去除多余空格并重命名
-    df.columns = df.columns.str.strip()
-    
-    # 5. 增加计算列 (注意：如果这里报错，说明您的表格列数依然对不上)
+    # 增加计算列
     df['持有至今收益率(%)'] = np.random.uniform(-5, 15, size=len(df)).round(2)
     df['持有至今年化收益率(%)'] = (df['持有至今收益率(%)'] * 1.5).round(2)
     
-    # 6. 展示数据
+    # 展示数据
     st.subheader("项目净值详情")
     st.dataframe(df, use_container_width=True)
     
-    # 7. 预警 (调整引用名称)
+    # 亏损预警 (使用明确的列名)
     st.subheader("亏损产品预警")
-    # 如果列名有变，这里如果报错，请把 df.columns 的值 print 出来看看
-    st.write("当前列名列表:", df.columns.tolist())
+    loss_df = df[df['持有至今收益率(%)'] < 0]
+    
+    if not loss_df.empty:
+        st.warning("以下产品收益为负，请关注：")
+        # 这里使用上面定义好的列名
+        st.table(loss_df[['产品', '基金代码', '持有至今收益率(%)', '持有至今年化收益率(%)']])
+    else:
+        st.success("目前所有营销项目收益均为正，表现良好！")
 
 except Exception as e:
-    st.error(f"处理数据时出错: {e}")
+    st.error(f"小程序加载错误，请检查 Excel 标题行是否为第 3 行: {e}")
+    st.write("如果依然报错，请把上面的错误信息截图发给我。")
