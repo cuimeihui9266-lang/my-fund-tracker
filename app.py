@@ -2,50 +2,44 @@ import streamlit as st
 import pandas as pd
 import os
 
-# 1. 页面配置与美化
-st.set_page_config(page_title="华泰柏瑞净值跟踪", layout="wide")
-st.markdown("""
-    <style>
-    .metric-card { background-color: #f8f9fa; padding: 20px; border-radius: 10px; border: 1px solid #e9ecef; }
-    </style>
-    """, unsafe_allow_html=True)
-
+st.set_page_config(page_title="华泰柏瑞营销净值跟踪", layout="wide")
 st.title("📊 华泰柏瑞近期重大营销项目净值跟踪")
 
-# 2. 数据读取与处理
+# 路径设置
 current_dir = os.path.dirname(os.path.abspath(__file__))
 file_path = os.path.join(current_dir, "净值跟踪整体.xlsx")
 
 try:
-    # 直接按您之前成功的那次逻辑读取（header=2，读取第三行为标题）
-    df = pd.read_excel(file_path, header=2)
+    # 1. 跳过前 3 行读取数据 (根据之前的截图，这能正确跳过标题行)
+    df = pd.read_excel(file_path, header=None, skiprows=3)
     
-    # 强制清理列名（去空格）
-    df.columns = df.columns.str.strip()
+    # 2. 强制取前 8 列并直接重命名，彻底抹平 Excel 原本列名的干扰
+    # 确保您的表格至少有 8 列数据
+    df = df.iloc[:, :8]
+    df.columns = ['销售渠道', '产品', '基金代码', '类型', '购买日期', '网点分布', '当前收益', '年化收益']
     
-    # 3. 核心：调用 Excel 原有的列名
-    # 这里引用您 Excel 真实表格里的列名，如果报错，请对照 Excel 表头修改引号里的名字
-    target_cols = ['销售渠道', '产品', '基金代码', '类型', '购买日期', '重点销售人员网点分布', '当前收益率(%)', '持有至今年化收益率(%)']
-    df_display = df[target_cols].copy()
+    # 3. 数据清洗：确保收益列为数字，非数字转为 0
+    df['当前收益'] = pd.to_numeric(df['当前收益'], errors='coerce').fillna(0)
+    df['年化收益'] = pd.to_numeric(df['年化收益'], errors='coerce').fillna(0)
     
-    # 4. 格式化百分号
-    df_display['当前收益率(%)'] = df_display['当前收益率(%)'].apply(lambda x: f"{x:.2f}%")
-    df_display['持有至今年化收益率(%)'] = df_display['持有至今年化收益率(%)'].apply(lambda x: f"{x:.2f}%")
+    # 4. 显示表格（加上百分号格式）
+    display_df = df.copy()
+    display_df['当前收益'] = display_df['当前收益'].apply(lambda x: f"{x:.2f}%")
+    display_df['年化收益'] = display_df['年化收益'].apply(lambda x: f"{x:.2f}%")
     
-    # 5. 展示
     st.subheader("📋 详细项目列表")
-    st.dataframe(df_display, use_container_width=True)
+    st.dataframe(display_df, use_container_width=True)
     
-    # 6. 预警 (预警逻辑用数字列，所以用原始的 df)
+    # 5. 预警
     st.subheader("⚠️ 亏损产品风险预警")
-    loss_df = df[df['当前收益率(%)'] < 0]
+    loss_df = df[df['当前收益'] < 0]
     
     if not loss_df.empty:
         st.error(f"监测到 {len(loss_df)} 个产品处于亏损状态：")
-        st.table(loss_df[['产品', '基金代码', '当前收益率(%)', '持有至今年化收益率(%)']])
+        st.table(loss_df[['产品', '基金代码', '当前收益', '年化收益']])
     else:
         st.success("所有项目目前表现良好，暂无亏损产品！")
 
 except Exception as e:
-    st.error("数据加载失败，请检查 Excel 列名是否包含：'当前收益率(%)' 和 '持有至今年化收益率(%)'")
-    st.write(f"详细错误: {e}")
+    st.error("数据加载错误，请确认 Excel 文件在根目录且至少有 8 列数据。")
+    st.write(f"调试信息: {e}")
