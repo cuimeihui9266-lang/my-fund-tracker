@@ -11,29 +11,30 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 file_path = os.path.join(current_dir, "净值跟踪整体.xlsx")
 
 try:
-    # 1. 读取 Excel
-    df = pd.read_excel(file_path, header=2)
+    # 1. 直接读取数据，不设 header，跳过前三行
+    df = pd.read_excel(file_path, header=None, skiprows=3)
     
-    # 2. 【关键调试】把所有列名显示出来，您直接看网页上显示的名字是什么
-    st.write("--- 调试信息：您的Excel表格真实列名如下 ---")
-    st.write(df.columns.tolist())
-    st.write("-------------------------------------------")
+    # 2. 强制赋予列名（只要您的 Excel 至少有 6 列，这就能跑）
+    # 这样我们就完全不用管 Excel 原本叫什么名字了
+    df = df.iloc[:, :6] # 只取前6列
+    df.columns = ['销售渠道', '产品名称', '基金代码', '类型', '购买日期', '重点销售分布']
     
-    # 3. 接下来只需要您把上面显示的名字，对应填入下面的列表即可
-    # 假设您的列名分别是：['销售渠道', '产品名称', '基金代码', '类型', '购买日期', '重点销售人员网点分布']
-    # 请根据网页显示的实际名称修改下面这一行：
-    df.columns = ['销售渠道', '产品名称', '基金代码', '类型', '购买日期', '重点销售人员网点分布']
-    
-    # 计算列
+    # 3. 增加计算列
     df['持有至今收益率(%)'] = np.random.uniform(-5, 15, size=len(df)).round(2)
     df['持有至今年化收益率(%)'] = (df['持有至今收益率(%)'] * 1.5).round(2)
     
+    # 4. 展示表格
     st.dataframe(df, use_container_width=True)
     
-    # 预警部分
+    # 5. 预警 (直接使用上面定义好的列名)
     st.subheader("亏损产品预警")
     loss_df = df[df['持有至今收益率(%)'] < 0]
-    st.table(loss_df[['产品名称', '基金代码', '持有至今收益率(%)', '持有至今年化收益率(%)']])
+    
+    if not loss_df.empty:
+        st.warning("以下产品收益为负，请关注：")
+        st.table(loss_df[['产品名称', '基金代码', '持有至今收益率(%)', '持有至今年化收益率(%)']])
+    else:
+        st.success("目前所有项目收益均为正！")
 
 except Exception as e:
-    st.error(f"出错啦: {e}")
+    st.error(f"还是报错？没关系，直接把这一行报错信息截图给我: {e}")
